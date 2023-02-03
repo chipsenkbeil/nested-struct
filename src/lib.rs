@@ -1,94 +1,5 @@
-/// Creates a new struct that may feature nested fields.
-///
-/// ```
-/// # use nested_struct::nested_struct;
-/// nested_struct! {
-///     pub struct MyStruct {
-///         pub regular_field: u32,
-///         pub nested_field: NestedField {
-///             pub inner_field: bool
-///         }
-///     }
-/// }
-///
-/// let _ = MyStruct {
-///     regular_field: 123,
-///     nested_field: NestedField {
-///         inner_field: true,
-///     },
-/// };
-/// ```
-///
-/// ### Deeply-nested structs
-///
-/// Nesting is not limited to a single level. You can generate structs with multi-nested fields:
-///
-/// ```
-/// # use nested_struct::nested_struct;
-/// nested_struct! {
-///     pub struct MyStruct {
-///         pub nested_field: NestedField {
-///             pub nested_field: DeeperNestedField {
-///                 pub inner_field: bool
-///             }
-///         }
-///     }
-/// }
-///
-/// let _ = MyStruct {
-///     nested_field: NestedField {
-///         nested_field: DeeperNestedField {
-///             inner_field: true,
-///         }
-///     },
-/// };
-/// ```
-///
-/// ### Applying field attributes to fields that are nested structs
-///
-/// Like with a normal struct, nested fields can have attributes placed on them:
-///
-/// ```
-/// # use nested_struct::nested_struct;
-/// nested_struct! {
-///     pub struct MyStruct {
-///         pub regular_field: u32,
-///
-///         #[doc = "my nested field"]
-///         pub nested_field: NestedField {
-///             pub inner_field: bool
-///         }
-///     }
-/// }
-/// ```
-///
-/// ### Applying struct-level attributes to nested structs
-///
-/// If you want to apply attributes on the generated, nested struct, you need to
-/// use the `@nested` marker. This can be used multiple times, but must occur BEFORE
-/// any field-specific attributes:
-///
-/// ```
-/// # use nested_struct::nested_struct;
-/// nested_struct! {
-///     pub struct MyStruct {
-///         pub regular_field: u32,
-///
-///         @nested(#[derive(Clone)])
-///         #[doc = "my nested field"]
-///         pub nested_field: NestedField {
-///             pub inner_field: bool
-///         }
-///     }
-/// }
-///
-/// let nested_field = NestedField { inner_field: true };
-/// let _ = MyStruct {
-///     regular_field: 123,
-///     nested_field: nested_field.clone(),
-/// };
-/// ```
-///
+#![doc = include_str!("../README.md")]
+
 #[macro_export]
 macro_rules! nested_struct {
     // Primary rule to generate the struct
@@ -241,6 +152,88 @@ mod tests {
                     field: NestedField2 { field: 123 },
                 },
             };
+        }
+    }
+
+    #[cfg(feature = "anonymous")]
+    mod anonymous {
+        use super::*;
+
+        #[test]
+        #[allow(dead_code)]
+        fn supports_named_struct_with_anonymous_nested_fields() {
+            nested_struct! {
+                struct TestStruct {
+                    nested_field: {
+                        nested_field: u32
+                    }
+                }
+            }
+
+            let _ = TestStruct {
+                nested_field: TestStructNestedField { nested_field: 123 },
+            };
+        }
+
+        #[test]
+        #[allow(dead_code)]
+        fn supports_named_struct_with_anonymous_deeply_nested_fields() {
+            nested_struct! {
+                struct TestStruct {
+                    nested_field: {
+                        nested_field: { nested_field: u32 }
+                    }
+                }
+            }
+
+            let _ = TestStruct {
+                nested_field: TestStructNestedField {
+                    nested_field: TestStructNestedFieldNestedField { nested_field: 123 },
+                },
+            };
+        }
+
+        #[test]
+        #[allow(dead_code)]
+        fn supports_named_struct_with_anonymous_nested_fields_using_nested_attribute() {
+            // Single nested version
+            {
+                nested_struct! {
+                    #[derive(Clone)]
+                    struct TestStruct {
+                        @nested(#[derive(Clone)])
+                        nested_field: {
+                            nested_field: u32
+                        }
+                    }
+                }
+
+                let _ = TestStruct {
+                    nested_field: TestStructNestedField { nested_field: 123 },
+                };
+            }
+
+            // Deeply nested version
+            {
+                nested_struct! {
+                    #[derive(Clone)]
+                    struct TestStruct {
+                        @nested(#[derive(Clone)])
+                        nested_field: {
+                            @nested(#[derive(Clone)])
+                            nested_field: {
+                                nested_field: u32
+                            }
+                        }
+                    }
+                }
+
+                let _ = TestStruct {
+                    nested_field: TestStructNestedField {
+                        nested_field: TestStructNestedFieldNestedField { nested_field: 123 },
+                    },
+                };
+            }
         }
     }
 }
