@@ -105,10 +105,10 @@ macro_rules! nested_struct {
         $(,)? }
     ) => {
         // Generate our primary struct
-        $( #[$meta] )*
+        $(#[$meta])*
         $vis struct $name {
             $(
-                $( #[$field_meta] )*
+                $(#[$field_meta])*
                 $field_vis $field_name : $field_ty
             ),*
         }
@@ -156,9 +156,9 @@ mod tests {
     }
 
     #[test]
+    #[allow(dead_code)]
     fn supports_named_struct_with_regular_fields() {
         nested_struct! {
-            #[allow(dead_code)]
             struct TestStruct {
                 field: u32
             }
@@ -168,11 +168,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(dead_code)]
     fn supports_named_struct_with_nested_fields() {
         nested_struct! {
-            #[allow(dead_code)]
             struct TestStruct {
-                @nested(#[allow(dead_code)])
                 field: NestedField {
                     field: u32
                 }
@@ -185,13 +184,11 @@ mod tests {
     }
 
     #[test]
+    #[allow(dead_code)]
     fn supports_named_struct_with_deeply_nested_fields() {
         nested_struct! {
-            #[allow(dead_code)]
             struct TestStruct {
-                @nested(#[allow(dead_code)])
                 field: NestedField {
-                    @nested(#[allow(dead_code)])
                     field: NestedField2 { field: u32 }
                 }
             }
@@ -202,5 +199,48 @@ mod tests {
                 field: NestedField2 { field: 123 },
             },
         };
+    }
+
+    #[test]
+    #[allow(dead_code)]
+    fn supports_named_struct_with_nested_fields_using_nested_attribute() {
+        // Single nested version
+        {
+            nested_struct! {
+                #[derive(Clone)]
+                struct TestStruct {
+                    @nested(#[derive(Clone)])
+                    field: NestedField {
+                        field: u32
+                    }
+                }
+            }
+
+            let _ = TestStruct {
+                field: NestedField { field: 123 },
+            };
+        }
+
+        // Deeply nested version
+        {
+            nested_struct! {
+                #[derive(Clone)]
+                struct TestStruct {
+                    @nested(#[derive(Clone)])
+                    field: NestedField {
+                        @nested(#[derive(Clone)])
+                        field: NestedField2 {
+                            field: u32
+                        }
+                    }
+                }
+            }
+
+            let _ = TestStruct {
+                field: NestedField {
+                    field: NestedField2 { field: 123 },
+                },
+            };
+        }
     }
 }
