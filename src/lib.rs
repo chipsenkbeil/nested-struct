@@ -7,9 +7,9 @@ macro_rules! nested_struct {
         $(#[$meta:meta])*
         $vis:vis struct $name:ident {
             $(
-                $( @nested(#[$field_nested_meta:meta]) )*
-                $( #[$field_meta:meta] )*
-                $field_vis:vis $field_name:ident : $($field_ty:ident)? $({
+                $(#[$field_meta:meta])*
+                $(@nested(#[$field_nested_meta:meta]))*
+                $field_vis:vis $field_name:ident : $field_ty:ident $({
                     $($field_ty_inner:tt)*
                 })?
             ),*
@@ -17,29 +17,20 @@ macro_rules! nested_struct {
     ) => {
         // Generate our primary struct
         $(#[$meta])* $vis struct $name {
-                        $(
-            nested_struct! {
-                @new_field
-                            $(#[$field_meta])*
-                            $field_vis $field_name : $($field_ty)?
-            }
-                        ),*
+            $(
+                $(#[$field_meta])*
+                $field_vis $field_name : $field_ty
+            ),*
         }
 
         // Generate our inner structs for fields
         $(nested_struct! {
             @nested
             $(#[$field_nested_meta])*
-            $field_vis $($field_ty)? $({
+            $field_vis $field_ty $({
                 $($field_ty_inner)*
             })?
         })*
-    };
-
-    // [FIELD] Produces the struct field
-    (@new_field $field_vis:vis $field_name:ident : $field_ty:ident) => {
-        $(#[$field_meta])*
-        $field_vis $field_name : $field_ty
     };
 
     // [INCLUDE] Used to filter out struct generation to only nested types
@@ -160,88 +151,6 @@ mod tests {
                     field: NestedField2 { field: 123 },
                 },
             };
-        }
-    }
-
-    #[cfg(feature = "anonymous")]
-    mod anonymous {
-        use super::*;
-
-        #[test]
-        #[allow(dead_code)]
-        fn supports_named_struct_with_anonymous_nested_fields() {
-            nested_struct! {
-                struct TestStruct {
-                    nested_field: {
-                        nested_field: u32
-                    }
-                }
-            }
-
-            let _ = TestStruct {
-                nested_field: TestStructNestedField { nested_field: 123 },
-            };
-        }
-
-        #[test]
-        #[allow(dead_code)]
-        fn supports_named_struct_with_anonymous_deeply_nested_fields() {
-            nested_struct! {
-                struct TestStruct {
-                    nested_field: {
-                        nested_field: { nested_field: u32 }
-                    }
-                }
-            }
-
-            let _ = TestStruct {
-                nested_field: TestStructNestedField {
-                    nested_field: TestStructNestedFieldNestedField { nested_field: 123 },
-                },
-            };
-        }
-
-        #[test]
-        #[allow(dead_code)]
-        fn supports_named_struct_with_anonymous_nested_fields_using_nested_attribute() {
-            // Single nested version
-            {
-                nested_struct! {
-                    #[derive(Clone)]
-                    struct TestStruct {
-                        @nested(#[derive(Clone)])
-                        nested_field: {
-                            nested_field: u32
-                        }
-                    }
-                }
-
-                let _ = TestStruct {
-                    nested_field: TestStructNestedField { nested_field: 123 },
-                };
-            }
-
-            // Deeply nested version
-            {
-                nested_struct! {
-                    #[derive(Clone)]
-                    struct TestStruct {
-                        @nested(#[derive(Clone)])
-                        nested_field: {
-                            @nested(#[derive(Clone)])
-                            nested_field: {
-                                nested_field: u32
-                            }
-                        }
-                    }
-                }
-
-                let _ = TestStruct {
-                    nested_field: TestStructNestedField {
-                        nested_field: TestStructNestedFieldNestedField { nested_field: 123 },
-                    },
-                };
-            }
         }
     }
 }

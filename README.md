@@ -102,7 +102,7 @@ nested_struct! {
 ### Applying struct-level attributes to nested structs
 
 If you want to apply attributes on the generated, nested struct, you need to
-use the `@nested` marker. This can be used multiple times, but must occur BEFORE
+use the `@nested` marker. This can be used multiple times, but must occur AFTER
 any field-specific attributes:
 
 ```rust
@@ -112,8 +112,8 @@ nested_struct! {
     pub struct MyStruct {
         pub regular_field: u32,
 
-        @nested(#[derive(Clone)])
         #[doc = "my nested field"]
+        @nested(#[derive(Clone)])
         pub nested_field: NestedField {
             pub inner_field: bool
         }
@@ -124,48 +124,6 @@ let nested_field = NestedField { inner_field: true };
 let _ = MyStruct {
     regular_field: 123,
     nested_field: nested_field.clone(),
-};
-```
-
-### Leveraging anonymous structs 
-
-> Requires feature `anonymous` to be enabled!
-
-Sometimes, when creating nested structs, you don't care what the name of the
-nested structs are, just that the root struct can hold the data. This is
-particularly the case when creating a configuration definition that you load
-from memory, such as using serde and TOML.
-
-In that case, you can exclude the type name and this crate will name it for you
-based on the parent-child struct. Every field name is converted into camel
-case, meaning that `MyStruct.nested_field` will become `MyStructNestedField`
-and deeper nestings like `MyStruct.nested_field.deeper_field` will become
-`MyStructNestedFieldDeeperField`.
-
-```rust
-use nested_struct::*;
-
-// Will generate a nested struct whose name is MyStructNestedStruct
-nested_struct! {
-    pub struct MyStruct {
-        pub regular_field: u32,
-        pub nested_field: {
-            pub inner_field: bool
-            pub deeper_field: {
-                pub final_field: &'static str
-            }
-        }
-    }
-}
-
-let _ = MyStruct {
-    regular_field: 123,
-    nested_field: MyStructNestedField { 
-        inner_field: true,
-        deeper_field: MyStructNestedFieldDeeperField {
-            final_field: "hello world",
-        },
-    },
 };
 ```
 
