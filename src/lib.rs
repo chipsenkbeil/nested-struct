@@ -2,36 +2,44 @@
 
 #[macro_export]
 macro_rules! nested_struct {
-    // Primary rule to generate the struct
+    // [MAIN] Primary rule to generate the struct
     (
         $(#[$meta:meta])*
         $vis:vis struct $name:ident {
             $(
                 $( @nested(#[$field_nested_meta:meta]) )*
                 $( #[$field_meta:meta] )*
-                $field_vis:vis $field_name:ident : $field_ty:ident $({
+                $field_vis:vis $field_name:ident : $($field_ty:ident)? $({
                     $($field_ty_inner:tt)*
                 })?
             ),*
         $(,)? }
     ) => {
         // Generate our primary struct
-        $(#[$meta])*
-        $vis struct $name {
-            $(
-                $(#[$field_meta])*
-                $field_vis $field_name : $field_ty
-            ),*
+        $(#[$meta])* $vis struct $name {
+                        $(
+            nested_struct! {
+                @new_field
+                            $(#[$field_meta])*
+                            $field_vis $field_name : $($field_ty)?
+            }
+                        ),*
         }
 
         // Generate our inner structs for fields
         $(nested_struct! {
             @nested
             $(#[$field_nested_meta])*
-            $field_vis $field_ty $({
+            $field_vis $($field_ty)? $({
                 $($field_ty_inner)*
             })?
         })*
+    };
+
+    // [FIELD] Produces the struct field
+    (@new_field $field_vis:vis $field_name:ident : $field_ty:ident) => {
+        $(#[$field_meta])*
+        $field_vis $field_name : $field_ty
     };
 
     // [INCLUDE] Used to filter out struct generation to only nested types
